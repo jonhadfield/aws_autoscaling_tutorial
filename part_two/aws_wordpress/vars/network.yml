@@ -1,0 +1,78 @@
+---
+vpc_name: vpcWordPress
+vpc_state: present
+vpc_region: "eu-west-1"
+vpc_cidr_block: 10.0.0.0/16
+vpc_resource_tags:
+  Name: "{{ vpc_name }}"
+vpc_subnet_elb_a_name: snWordPressELBa
+vpc_subnet_elb_b_name: snWordPressELBb
+vpc_subnet_elb_names:
+ - "{{ vpc_subnet_elb_a_name }}"
+ - "{{ vpc_subnet_elb_b_name }}"
+vpc_subnet_db_names:
+ - "{{ vpc_subnet_db_a_name }}"
+ - "{{ vpc_subnet_db_b_name }}"
+vpc_subnet_app_a_name: snWordPressAPPa
+vpc_subnet_app_b_name: snWordPressAPPb
+vpc_subnet_db_a_name: snWordPressDBa
+vpc_subnet_db_b_name: snWordPressDBb
+vpc_subnets:
+  - cidr: 10.0.1.0/24
+    az: eu-west-1a
+    resource_tags:
+      Name: "{{ vpc_subnet_elb_a_name }}"
+  - cidr: 10.0.2.0/24
+    az: eu-west-1b
+    resource_tags:
+      Name: "{{ vpc_subnet_elb_b_name }}"
+  - cidr: 10.0.3.0/24
+    az: eu-west-1a
+    resource_tags:
+      Name: "{{ vpc_subnet_app_a_name }}"
+  - cidr: 10.0.4.0/24
+    az: eu-west-1b
+    resource_tags:
+      Name: "{{ vpc_subnet_app_b_name }}"
+  - cidr: 10.0.5.0/24
+    az: eu-west-1a
+    resource_tags:
+      Name: "{{ vpc_subnet_db_a_name }}"
+  - cidr: 10.0.6.0/24
+    az: eu-west-1b
+    resource_tags:
+      Name: "{{ vpc_subnet_db_b_name }}"
+vpc_igw: True
+vpc_route_tables:
+  - subnets:
+    - "10.0.1.0/24"
+    - "10.0.2.0/24"
+    routes:
+      - dest: 0.0.0.0/0
+        gw: igw
+wordpress_app_subnet_names:
+ - "{{ vpc_subnet_app_a_name }}"
+ - "{{ vpc_subnet_app_b_name }}"
+
+sec_wordpress_lb_name: secWordPressLB
+sec_wordpress_lb_rules:
+  - proto: tcp
+    from_port: 80
+    to_port: 80
+    cidr_ip: 0.0.0.0/0
+
+lb_wordpress_name: "lbWordPress"
+lb_wordpress_scheme: "internet-facing"
+lb_wordpress_cross_az: "yes"
+lb_wordpress_listeners:
+  - protocol: tcp
+    load_balancer_port: 80
+    instance_port: 80
+lb_wordpress_healthcheck:
+  ping_protocol: http
+  ping_port: 80
+  ping_path: "/"
+  response_timeout: 2
+  interval: 5
+  unhealthy_threshold: 2
+  healthy_threshold: 2
