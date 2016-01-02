@@ -13,7 +13,7 @@ lc_wordpress_name: wordpress
 lc_wordpress_assign_public_ip: no
 lc_wordpress_ami: ami-2d07a85e
 lc_wordpress_instance_type: t1.micro
-lc_wordpress_key_name: jhec2key2
+lc_wordpress_key_name: <key_pair>
 
 asg_wordpress_name: wordpress
 asg_wordpress_availability_zones:
