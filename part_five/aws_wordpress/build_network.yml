@@ -1,0 +1,30 @@
+---
+- name: create wordpress VPC
+  ec2_vpc:
+    state: "{{ vpc_state }}"
+    resource_tags: "{{ vpc_resource_tags }}"
+    cidr_block: "{{ vpc_cidr_block }}"
+    region: "{{ vpc_region }}"
+    subnets: "{{ vpc_subnets }}"
+    internet_gateway: "{{ vpc_igw }}"
+
+- name: create wordpress load balancer security group
+  ec2_group:
+    name: "{{ sec_wordpress_lb_name }}"
+    description: wordpress load balancer group
+    vpc_id: "{{ lookup('aws_vpc_id_from_name', (vpc_region, vpc_name)) }}"
+    region: "{{ vpc_region }}"
+    rules: "{{ sec_wordpress_lb_rules }}"
+
+- name: create load balancer for wordpress application instances
+  ec2_elb_lb:
+    state: present
+    name: "{{ lb_wordpress_name }}"
+    scheme: "{{ lb_wordpress_scheme }}"
+    cross_az_load_balancing: "{{ lb_wordpress_cross_az }}"
+    region: "{{ vpc_region }}"
+    subnets: "{{ lookup('aws_subnet_ids_from_names', (vpc_region, vpc_subnet_elb_names)) }}"
+    health_check: "{{ lb_wordpress_healthcheck }}"
+    security_group_ids: "{{ lookup('aws_secgroup_ids_from_names', (vpc_region, [sec_wordpress_lb_name])) }}"
+    listeners: "{{ lb_wordpress_listeners }}"
+

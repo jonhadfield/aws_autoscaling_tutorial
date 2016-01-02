@@ -1,0 +1,44 @@
+---
+- name: create wordpress app security group
+  ec2_group:
+    name: "{{ sec_wordpress_app_name }}"
+    description: wordpress app group
+    vpc_id: "{{ lookup('aws_vpc_id_from_name', (vpc_region, vpc_name)) }}"
+    region: "{{ vpc_region }}"
+    rules: "{{ sec_wordpress_app_rules }}"
+ 
+- name: create wordpress database security group
+  ec2_group:
+    name: "{{ sec_wordpress_db_name }}"
+    description: wordpress database group
+    vpc_id: "{{ lookup('aws_vpc_id_from_name', (vpc_region,  vpc_name)) }}"
+    region: "{{ vpc_region }}"
+    rules: "{{ sec_wordpress_db_rules }}"
+
+- name: create wordpress database subnet group
+  rds_subnet_group:
+    region: "{{ vpc_region }}"
+    state: present
+    name: "{{ rsg_name }}"
+    description: "{{ rsg_description }}"
+    subnets: "{{ lookup('aws_subnet_ids_from_names', (vpc_region, vpc_subnet_db_names)) }}"
+
+- name: create wordpress db
+  rds:
+    instance_name: "{{ db_instance_name }}"
+    db_name: "{{ db_name }}"
+    region: "{{ vpc_region }}"
+    publicly_accessible: "{{ db_publicly_accessible }}"
+    multi_zone: "{{ db_multi_zone }}"
+    subnet: "{{ rsg_name }}"
+    vpc_security_groups: "{{ lookup('aws_secgroup_ids_from_names', (vpc_region, [db_vpc_sec_groups])) }}"
+    command: create
+    db_engine: MySQL
+    size: "{{ db_size }}"
+    instance_type: "{{ db_instance_type }}"
+    username: "{{ db_username }}"
+    password: "{{ db_password }}"
+    wait: "{{ db_wait }}"
+    wait_timeout: "{{ db_wait_timeout }}"
+    tags:
+      Name: wordpress

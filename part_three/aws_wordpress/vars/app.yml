@@ -1,0 +1,7 @@
+---
+sec_wordpress_app_name: secWordPressApp
+sec_wordpress_app_rules:
+- proto: tcp
+  from_port: 80
+  to_port: 80
+  group_name: "{{ sec_wordpress_lb_name }}"

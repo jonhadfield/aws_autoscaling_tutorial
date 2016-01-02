@@ -1,0 +1,66 @@
+---
+sec_wordpress_app_name: secWordPressApp
+sec_wordpress_app_rules:
+- proto: tcp
+  from_port: 80
+  to_port: 80
+  group_name: "{{ sec_wordpress_lb_name }}"
+
+key_name: <key_pair>
+wordpress_base_ami: <base_ami>
+wordpress_instance_type: t1.micro
+lc_wordpress_name: wordpress
+lc_wordpress_assign_public_ip: no
+lc_wordpress_ami: ami-2d07a85e
+lc_wordpress_instance_type: t1.micro
+lc_wordpress_key_name: jhec2key2
+
+asg_wordpress_name: wordpress
+asg_wordpress_availability_zones:
+  - eu-west-1a
+  - eu-west-1b
+asg_wordpress_lc_name: wordpress
+asg_wordpress_healthcheck_period: 500
+asg_wordpress_healthcheck_type: ELB
+asg_wordpress_replace_all_instances: yes
+asg_wordpress_min_size: 2
+asg_wordpress_max_size: 10
+asg_wordpress_desired_capacity: 2
+asg_wordpress_load_balancers: "{{ lb_wordpress_name }}"
+asg_wordpress_tags:
+  - Name: "{{ asg_wordpress_name }}"
+
+cwsp_wordpress_scale_down_name: "wordpress_node_scale_down_policy"
+cwsp_wordpress_scale_down_adjustment_type: "ChangeInCapacity"
+cwsp_wordpress_scale_down_scaling_adjustment: -1
+cwsp_wordpress_scale_down_min_adjustment_step: -1
+cwsp_wordpress_scale_down_cooldown: 120
+
+cwsp_wordpress_scale_up_name: "wordpress_node_scale_up_policy"
+cwsp_wordpress_scale_up_adjustment_type: "ChangeInCapacity"
+cwsp_wordpress_scale_up_scaling_adjustment: 1
+cwsp_wordpress_scale_up_min_adjustment_step: 1
+cwsp_wordpress_scale_up_cooldown: 120
+
+cwa_wordpress_high_cpu_name: "wordpress node - high cpu"
+cwa_wordpress_high_cpu_metric: "CPUUtilization"
+cwa_wordpress_high_cpu_namespace: "AWS/EC2"
+cwa_wordpress_high_cpu_statistic: "Average"
+cwa_wordpress_high_cpu_comparison: ">="
+cwa_wordpress_high_cpu_threshold: 60.0
+cwa_wordpress_high_cpu_period: 60
+cwa_wordpress_high_cpu_evaluation_periods: 1
+cwa_wordpress_high_cpu_unit: "Percent"
+cwa_wordpress_high_cpu_description: "Alarm when cache node CPU utilisation is higher than 60% over a 1min period for 1 periods."
+
+cwa_wordpress_low_cpu_name: "wordpress node - low cpu"
+cwa_wordpress_low_cpu_metric: "CPUUtilization"
+cwa_wordpress_low_cpu_namespace: "AWS/EC2"
+cwa_wordpress_low_cpu_statistic: "Average"
+cwa_wordpress_low_cpu_comparison: "<="
+cwa_wordpress_low_cpu_threshold: 20.0
+cwa_wordpress_low_cpu_period: 60
+cwa_wordpress_low_cpu_evaluation_periods: 3
+cwa_wordpress_low_cpu_unit: "Percent"
+cwa_wordpress_low_cpu_description: "This will alarm when cpu usage average is lower than 20% for 1 minute."
+

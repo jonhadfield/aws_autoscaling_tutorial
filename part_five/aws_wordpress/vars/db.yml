@@ -1,0 +1,22 @@
+---
+sec_wordpress_db_name: secWordPressDB
+sec_wordpress_db_rules:
+  - proto: tcp
+    from_port: 3306
+    to_port: 3306
+    group_name: "{{ sec_wordpress_app_name }}"
+
+rsg_name: wordpress
+rsg_description: wordpress database
+
+db_instance_name: wordpress
+db_name: wordpress
+db_publicly_accessible: no
+db_multi_zone: yes
+db_vpc_sec_group: "{{ sec_wordpress_db_name }}"
+db_size: 5
+db_instance_type: db.t2.micro
+db_username: wordpress
+db_password: wordpress
+db_wait: yes
+db_wait_timeout: 1200

@@ -1,0 +1,90 @@
+---
+- name: create wordpress launch configuration
+  ec2_lc:
+    name: "{{ lc_wordpress_name }}"
+    region: "{{ vpc_region }}"
+    image_id: "{{ lc_wordpress_ami }}"
+    key_name: "{{ lc_wordpress_key_name }}"
+    security_groups: "{{ lookup('aws_secgroup_ids_from_names', (vpc_region, [sec_wordpress_app_name])) }}"
+    instance_type: "{{ lc_wordpress_instance_type }}"
+    assign_public_ip: "{{ lc_wordpress_assign_public_ip }}"
+
+- name: create wordpress auto scaling group
+  ec2_asg:
+    name: "{{ asg_wordpress_name }}"
+    availability_zones: "{{ asg_wordpress_availability_zones }}"
+    launch_config_name: "{{ asg_wordpress_lc_name }}"
+    health_check_period: "{{ asg_wordpress_healthcheck_period }}"
+    health_check_type: "{{ asg_wordpress_healthcheck_type }}"
+    replace_all_instances: "{{ asg_wordpress_replace_all_instances }}"
+    min_size: "{{ asg_wordpress_min_size }}"
+    max_size: "{{ asg_wordpress_max_size }}"
+    desired_capacity: "{{ asg_wordpress_desired_capacity }}"
+    load_balancers: "{{ lb_wordpress_name }}"
+    region: "{{ vpc_region }}"
+    vpc_zone_identifier: "{{ lookup('aws_subnet_ids_from_names', ( vpc_region, wordpress_app_subnet_names )) }}"
+    tags: "{{ asg_wordpress_tags }}"
+
+- name: create scale down policy
+  ec2_scaling_policy:
+    state: present
+    region: "{{ vpc_region }}"
+    name: "{{ cwsp_wordpress_scale_down_name }}"
+    adjustment_type: "{{ cwsp_wordpress_scale_down_adjustment_type }}"
+    asg_name: "{{ asg_wordpress_name }}"
+    scaling_adjustment: "{{ cwsp_wordpress_scale_down_scaling_adjustment }}"
+    min_adjustment_step: "{{ cwsp_wordpress_scale_down_min_adjustment_step }}"
+    cooldown: "{{ cwsp_wordpress_scale_down_cooldown }}"
+  register: scale_down_policy
+  tags: scaling_policy
+
+- name: create scale up policy
+  ec2_scaling_policy:
+    state: present
+    region: "{{ vpc_region }}"
+    name: "{{ cwsp_wordpress_scale_up_name }}"
+    adjustment_type: "{{ cwsp_wordpress_scale_up_adjustment_type }}"
+    asg_name: "{{ asg_wordpress_name }}"
+    scaling_adjustment: "{{ cwsp_wordpress_scale_up_scaling_adjustment }}"
+    min_adjustment_step: "{{ cwsp_wordpress_scale_up_scaling_adjustment }}"
+    cooldown: "{{ cwsp_wordpress_scale_up_cooldown }}"
+  register: scale_up_policy
+  tags: scaling_policy
+
+- name: create alarm for high cpu on wordpress nodes
+  ec2_metric_alarm:
+    state: present
+    region: "{{ vpc_region }}"
+    name: "{{ cwa_wordpress_high_cpu_name }}"
+    metric: "{{ cwa_wordpress_high_cpu_metric }}"
+    namespace: "{{ cwa_wordpress_high_cpu_namespace }}"
+    statistic: "{{ cwa_wordpress_high_cpu_statistic }}"
+    comparison: "{{ cwa_wordpress_high_cpu_comparison }}"
+    threshold: "{{ cwa_wordpress_high_cpu_threshold }}"
+    period: "{{ cwa_wordpress_high_cpu_period }}"
+    evaluation_periods: "{{ cwa_wordpress_high_cpu_evaluation_periods }}"
+    unit: "Percent"
+    description: "Alarm when wordpress app node CPU utilisation is higher than 60% over a 1min period for 1 periods."
+    dimensions:
+      AutoScalingGroupName: "{{ asg_wordpress_name }}"
+    alarm_actions:
+    - "{{ scale_up_policy.arn }}"
+
+- name: create alarm for low cpu on wordpress app nodes
+  ec2_metric_alarm:
+    state: present
+    region: "{{ vpc_region }}"
+    name: "{{ cwa_wordpress_low_cpu_name }}"
+    metric: "{{ cwa_wordpress_low_cpu_metric }}"
+    namespace: "{{ cwa_wordpress_low_cpu_namespace }}"
+    statistic: "{{ cwa_wordpress_low_cpu_statistic }}"
+    comparison: "{{ cwa_wordpress_low_cpu_comparison }}"
+    threshold: "{{ cwa_wordpress_low_cpu_threshold }}"
+    period: "{{ cwa_wordpress_low_cpu_period }}"
+    evaluation_periods: "{{ cwa_wordpress_low_cpu_evaluation_periods }}"
+    unit: "{{ cwa_wordpress_low_cpu_unit }}"
+    description: "{{ cwa_wordpress_low_cpu_description }}"
+    dimensions:
+      AutoScalingGroupName: "{{ asg_wordpress_name }}"
+    alarm_actions:
+    - "{{ scale_down_policy.arn }}"

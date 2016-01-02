@@ -2,5 +2,11 @@
   - hosts: localhost
     connection: local
     gather_facts: false
+    vars_files:
+      - vars/network.yml
+      - vars/db.yml
+      - vars/app.yml
     tasks:
       - include: build_network.yml
+      - include: build_db.yml
+

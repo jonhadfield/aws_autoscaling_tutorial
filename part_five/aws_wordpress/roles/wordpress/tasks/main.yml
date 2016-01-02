@@ -1,0 +1,37 @@
+---
+- name: create wordpress group
+  group: name=wordpress state=present
+- name: create wordpress user
+  user: name=wordpress state=present createhome=no shell=/bin/false group=wordpress
+ 
+- name: install prequisite packages
+  yum: name={{ item }} state=present
+  with_items:
+    - httpd
+    - php
+    - php-mysql
+ 
+- name: download wordpress
+  get_url: url=https://wordpress.org/latest.tar.gz validate_certs=False dest=/tmp/wordpress.tar.gz
+ 
+- name: extract wordpress
+  unarchive: src=/tmp/wordpress.tar.gz dest=/tmp/ copy=False
+ 
+- name: remove existing httpd html directory
+  file: path=/var/www/html state=absent recurse=no
+ 
+- name: copy wordpress
+  command: cp -r /tmp/wordpress /var/www/html
+- name: copy wordpress configuration
+  command: cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+- name: configure db name
+  replace: dest=/var/www/html/wp-config.php regexp='database_name_here' replace="{{ db_name }}"
+- name: configure db username
+  replace: dest=/var/www/html/wp-config.php regexp='username_here' replace="{{ db_username }}"
+- name: configure db password
+  replace: dest=/var/www/html/wp-config.php regexp='password_here' replace="{{ db_password }}"
+- name: configure db host
+  replace: dest=/var/www/html/wp-config.php regexp='localhost' replace="{{ lookup('aws_rds_endpoint_name_from_instance_name', ('eu-west-1', db_name)) }}"
+ 
+- name: start httpd and ensure started on boot
+  service: name=httpd state=stopped enabled=yes
